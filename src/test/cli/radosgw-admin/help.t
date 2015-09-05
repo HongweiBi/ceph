@@ -24,6 +24,7 @@
     bucket check               check bucket index
     object rm                  remove object
     object unlink              unlink object from bucket index
+    objects expire             run expired objects cleanup
     quota set                  set quota params
     quota enable               enable quota
     quota disable              disable quota
@@ -82,6 +83,7 @@
      --access=<access>         Set access permissions for sub-user, should be one
                                of read, write, readwrite, full
      --display-name=<name>
+     --max_buckets             max number of buckets for a user
      --system                  set the system flag on the user
      --bucket=<bucket>
      --pool=<pool>

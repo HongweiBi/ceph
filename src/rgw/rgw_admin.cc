@@ -67,6 +67,7 @@ void _usage()
   cout << "  bucket check               check bucket index\n";
   cout << "  object rm                  remove object\n";
   cout << "  object unlink              unlink object from bucket index\n";
+  cout << "  objects expire             run expired objects cleanup\n";
   cout << "  quota set                  set quota params\n";
   cout << "  quota enable               enable quota\n";
   cout << "  quota disable              disable quota\n";
@@ -125,6 +126,7 @@ void _usage()
   cout << "   --access=<access>         Set access permissions for sub-user, should be one\n";
   cout << "                             of read, write, readwrite, full\n";
   cout << "   --display-name=<name>\n";
+  cout << "   --max_buckets             max number of buckets for a user\n";
   cout << "   --system                  set the system flag on the user\n";
   cout << "   --bucket=<bucket>\n";
   cout << "   --pool=<pool>\n";
@@ -223,6 +225,7 @@ enum {
   OPT_OBJECT_UNLINK,
   OPT_OBJECT_STAT,
   OPT_OBJECT_REWRITE,
+  OPT_OBJECTS_EXPIRE,
   OPT_BI_GET,
   OPT_BI_PUT,
   OPT_BI_LIST,
@@ -282,6 +285,7 @@ static int get_cmd(const char *cmd, const char *prev_cmd, bool *need_more)
       strcmp(cmd, "mdlog") == 0 ||
       strcmp(cmd, "metadata") == 0 ||
       strcmp(cmd, "object") == 0 ||
+      strcmp(cmd, "objects") == 0 ||
       strcmp(cmd, "olh") == 0 ||
       strcmp(cmd, "opstate") == 0 ||
       strcmp(cmd, "orphans") == 0 || 
@@ -391,6 +395,9 @@ static int get_cmd(const char *cmd, const char *prev_cmd, bool *need_more)
       return OPT_OBJECT_STAT;
     if (strcmp(cmd, "rewrite") == 0)
       return OPT_OBJECT_REWRITE;
+  } else if (strcmp(prev_cmd, "objects") == 0) {
+    if (strcmp(cmd, "expire") == 0)
+      return OPT_OBJECTS_EXPIRE;
   } else if (strcmp(prev_cmd, "olh") == 0) {
     if (strcmp(cmd, "get") == 0)
       return OPT_OLH_GET;
@@ -2341,6 +2348,14 @@ next:
       }
     } else {
       ldout(store->ctx(), 20) << "skipped object" << dendl;
+    }
+  }
+
+  if (opt_cmd == OPT_OBJECTS_EXPIRE) {
+    int ret = store->process_expire_objects();
+    if (ret < 0) {
+      cerr << "ERROR: process_expire_objects() processing returned error: " << cpp_strerror(-ret) << std::endl;
+      return 1;
     }
   }
 

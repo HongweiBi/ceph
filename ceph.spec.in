@@ -46,8 +46,10 @@ Version:	@VERSION@
 Release:	@RPM_RELEASE@%{?dist}
 Epoch:		1
 Summary:	User space components of the Ceph file system
-License:	GPL-2.0
-Group:		System Environment/Base
+License:	LGPL-2.1 and CC-BY-SA-1.0 and GPL-2.0 and BSL-1.0 and GPL-2.0-with-autoconf-exception and BSD-3-Clause and MIT
+%if 0%{?suse_version}
+Group:         System/Filesystems
+%endif
 URL:		http://ceph.com/
 Source0:	http://ceph.com/download/%{name}-%{version}.tar.bz2
 %if 0%{?fedora} || 0%{?rhel}
@@ -93,9 +95,11 @@ BuildRequires:	/usr/share/selinux/devel/policyhelp
 BuildRequires:	gcc-c++
 BuildRequires:	boost-devel
 BuildRequires:  boost-random
+BuildRequires:  cmake
 BuildRequires:	cryptsetup
 BuildRequires:	gdbm
 BuildRequires:	hdparm
+BuildRequires:	leveldb-devel > 1.2
 BuildRequires:	libaio-devel
 BuildRequires:	libcurl-devel
 BuildRequires:	libedit-devel
@@ -103,18 +107,17 @@ BuildRequires:	libxml2-devel
 BuildRequires:	libblkid-devel >= 2.17
 BuildRequires:	libudev-devel
 BuildRequires:	libtool
-BuildRequires:	leveldb-devel > 1.2
 BuildRequires:	make
-BuildRequires:	perl
 BuildRequires:	parted
+BuildRequires:	perl
 BuildRequires:	pkgconfig
 BuildRequires:	python
 BuildRequires:	python-nose
 BuildRequires:	python-requests
-%if ( 0%{?rhel} > 0 && 0%{?rhel} < 7 ) || ( 0%{?centos} > 0 && 0%{?centos} < 7 )
+%if 0%{?rhel} > 0 && 0%{?rhel} < 7
 BuildRequires:	python-sphinx10
 %endif
-%if 0%{?fedora} || 0%{defined suse_version} || 0%{?rhel} >= 7 || 0%{?centos} >= 7
+%if 0%{?fedora} || 0%{?suse_version} || 0%{?rhel} >= 7
 BuildRequires:	python-sphinx
 %endif
 
@@ -129,7 +132,7 @@ BuildRequires:	yasm
 #################################################################################
 # distro-conditional dependencies
 #################################################################################
-%if 0%{defined suse_version}
+%if 0%{?suse_version}
 Requires:	python-Flask
 BuildRequires:	net-tools
 BuildRequires:	libbz2-devel
@@ -158,6 +161,15 @@ Requires(preun):	initscripts
 BuildRequires:	gperftools-devel
 Requires:	python-flask
 %endif
+# lttng and babeltrace for rbd-replay-prep
+%if 0%{?fedora} || 0%{?rhel} == 6
+BuildRequires:	lttng-ust-devel
+BuildRequires:	libbabeltrace-devel
+%endif
+%if 0%{?suse_version} >= 1310
+BuildRequires:	lttng-ust-devel
+BuildRequires:  babeltrace-devel
+%endif
 
 %description
 Ceph is a massively scalable, open-source, distributed
@@ -179,9 +191,6 @@ Requires:	python-cephfs = %{epoch}:%{version}-%{release}
 Requires:	python-requests
 %if 0%{?rhel} || 0%{?fedora}
 Requires:	redhat-lsb-core
-%endif
-%if 0%{defined suse_version}
-Requires:	lsb-release
 %endif
 # python-argparse is only needed in distros with Python 2.6 or lower
 %if (0%{?rhel} && 0%{?rhel} <= 6) || (0%{?suse_version} && 0%{?suse_version} <= 1110)
@@ -214,7 +223,7 @@ Summary:	Rados REST gateway
 Group:		Development/Libraries
 Requires:	ceph-common = %{epoch}:%{version}-%{release}
 Requires:	librados2 = %{epoch}:%{version}-%{release}
-%if 0%{defined suse_version}
+%if 0%{?suse_version}
 BuildRequires:	libexpat-devel
 BuildRequires:	FastCGI-devel
 %endif
@@ -373,10 +382,6 @@ Group:		System Environment/Libraries
 License:	LGPL-2.0
 Requires:	ceph-common
 Requires:	xmlstarlet
-%if (0%{?fedora} || 0%{?rhel} == 6)
-BuildRequires:	lttng-ust-devel
-BuildRequires:	libbabeltrace-devel
-%endif
 %description -n ceph-test
 This package contains Ceph benchmarks and test tools.
 
@@ -555,7 +560,7 @@ export RPM_OPT_FLAGS=`echo $RPM_OPT_FLAGS | sed -e 's/i386/i486/'`
 		CFLAGS="$RPM_OPT_FLAGS" CXXFLAGS="$RPM_OPT_FLAGS"
 
 # fix bug in specific version of libedit-devel
-%if 0%{defined suse_version}
+%if 0%{?suse_version}
 sed -i -e "s/-lcurses/-lncurses/g" Makefile
 sed -i -e "s/-lcurses/-lncurses/g" src/Makefile
 sed -i -e "s/-lcurses/-lncurses/g" man/Makefile
@@ -643,7 +648,7 @@ mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/ceph/bootstrap-mds
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/ceph/bootstrap-rgw
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/log/radosgw
 
-%if %{defined suse_version}
+%if 0%{?suse_version}
 # Fedora seems to have some problems with this macro, use it only on SUSE
 %fdupes -s $RPM_BUILD_ROOT/%{python_sitelib}
 %fdupes %buildroot
@@ -771,6 +776,7 @@ mkdir -p %{_localstatedir}/run/ceph/
 %{_libdir}/rados-classes/libcls_log.so*
 %{_libdir}/rados-classes/libcls_replica_log.so*
 %{_libdir}/rados-classes/libcls_statelog.so*
+%{_libdir}/rados-classes/libcls_timeindex.so*
 %{_libdir}/rados-classes/libcls_user.so*
 %{_libdir}/rados-classes/libcls_version.so*
 %dir %{_libdir}/ceph/erasure-code
@@ -856,7 +862,7 @@ mkdir -p %{_localstatedir}/run/ceph/
 CEPH_GROUP_ID=""
 CEPH_USER_ID=""
 # disabled for now until we have the numbers
-%if 0%{?rhel} || 0%{?centos} || 0%{?fedora}
+%if 0%{?rhel} || 0%{?fedora}
 CEPH_GROUP_ID="-g 167"
 CEPH_USER_ID="-u 167"
 %endif
@@ -897,6 +903,7 @@ fi
 %defattr(-,root,root,-)
 %{_bindir}/radosgw
 %{_bindir}/radosgw-admin
+%{_bindir}/radosgw-object-expirer
 %{_mandir}/man8/radosgw.8*
 %{_mandir}/man8/radosgw-admin.8*
 %config(noreplace) %{_sysconfdir}/logrotate.d/radosgw
@@ -1093,7 +1100,7 @@ ln -sf %{_libdir}/librbd.so.1 /usr/lib64/qemu/librbd.so.1
 %{_mandir}/man8/rbd-replay-prep.8*
 %{_bindir}/rbd-replay
 %{_bindir}/rbd-replay-many
-%if (0%{?fedora} || 0%{?rhel} == 6)
+%if 0%{?fedora} || 0%{?rhel} == 6 || 0%{?suse_version} >= 1310
 %{_bindir}/rbd-replay-prep
 %endif
 %dir %{_libdir}/ceph
